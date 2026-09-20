@@ -211,3 +211,13 @@ bindsym $mod+Shift+period exec systemctl suspend
 
 #start audio or use alsa,
 bindsym $mod+Shift+a exec pavucontrol
+
+
+#xclip
+
+
+# F10: Select area -> Copy directly to clipboard
+bindsym F10 exec --no-startup-id sh -c 'maim -s /tmp/shot.png && xclip -selection clipboard -t image/png -i /tmp/shot.png'
+
+# Shift+F10: Select area -> Save directly to ~/screenshots
+bindsym Shift+F10 exec --no-startup-id bash -c 'maim -s "$HOME/screenshots/shot_$(date +%s).png"'
