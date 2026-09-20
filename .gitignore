@@ -1,0 +1,4 @@
+.DS_Store
+.config/nvim/lua/lazygit
+.config/nvim/lua/lazygit.tar.gz
+.config/nvim/lua/plugins/*.backup
