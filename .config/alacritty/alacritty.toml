@@ -19,6 +19,9 @@ option_as_alt = "Both"
 [font]
 size = 12
 
+[selection]
+save_to_clipboard = true
+
 # [font.offset]
 # y = 1
 # x = 0

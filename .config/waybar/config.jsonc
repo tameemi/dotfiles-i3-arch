@@ -1,0 +1,77 @@
+// -*- mode: jsonc -*-
+{
+  "position": "bottom", // Waybar at the bottom
+  "height": 26,
+  "spacing": 0,
+
+  // Choose the order of the modules
+  "modules-left": ["sway/workspaces", "sway/mode", "sway/scratchpad"],
+  "modules-center": ["sway/window"],
+  "modules-right": [
+    "idle_inhibitor",
+    "pulseaudio",
+    "network",
+    "cpu",
+    "memory",
+    "temperature",
+    "clock",
+    "tray",
+    "custom/power",
+  ],
+
+  // Modules configuration
+  "sway/mode": {
+    "format": "[{}]",
+  },
+  "sway/scratchpad": {
+    "format": "[S:{count}]",
+    "show-empty": false,
+    "tooltip": true,
+    "tooltip-format": "{app}: {title}",
+  },
+  "idle_inhibitor": {
+    "format": "{icon}",
+    "format-icons": {
+      "activated": "[INHIBIT]",
+      "deactivated": "",
+    },
+  },
+  "tray": {
+    "spacing": 8,
+  },
+  "clock": {
+    "format": "{:%Y-%m-%d %I:%M %p}",
+    "tooltip-format": "<tt><small>{calendar}</small></tt>",
+  },
+  "cpu": {
+    "format": "CPU:{usage}%",
+    "tooltip": false,
+  },
+  "memory": {
+    "interval": 3,
+    "format": "RAM:{used:0.1f}/{total:0.1f}GiB ({avail:0.1f}GiB free) {percentage}%",
+    "tooltip-format": "Used: {used:0.2f} GiB\nAvailable: {avail:0.2f} GiB\nTotal: {total:0.2f} GiB\nSwap: {swapUsed:0.2f}/{swapTotal:0.2f} GiB",
+  },
+  "temperature": {
+    "critical-threshold": 80,
+    "format": "TEMP:{temperatureC}°C",
+    "format-critical": "TEMP:{temperatureC}°C!",
+  },
+  "network": {
+    "format-wifi": "NET:{essid} {ipaddr}",
+    "format-ethernet": "ETH:{ipaddr}",
+    "format-linked": "ETH:(No IP)",
+    "format-disconnected": "NET:DOWN",
+    "tooltip-format": "{ifname} via {gwaddr}",
+  },
+  "pulseaudio": {
+    "format": "VOL:{volume}%",
+    "format-muted": "VOL:MUTED",
+    "on-click": "pavucontrol",
+  },
+  "custom/power": {
+    "format": " [OFF] ",
+    "tooltip": false,
+    "on-click": "swaynag -t warning -m 'Power Menu' -B 'Shutdown' 'systemctl poweroff' -B 'Reboot' 'systemctl reboot' -B 'Suspend' 'systemctl suspend'",
+  },
+}

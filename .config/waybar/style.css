@@ -1,0 +1,80 @@
+* {
+  border: none;
+  border-radius: 0;
+  font-family: "DejaVu Sans Mono", "Courier New", monospace;
+  font-size: 13px;
+  min-height: 0;
+}
+
+/* Base Terminal Background (Pitch Black & Bright Green Text) */
+window#waybar {
+  background-color: #000000;
+  color: #00ff00;
+  border-top: 1px solid #005500;
+}
+
+/* Workspaces */
+#workspaces button {
+  padding: 0 8px;
+  background-color: #000000;
+  color: #007700;
+  border-bottom: 2px solid transparent;
+}
+
+#workspaces button.focused {
+  background-color: #002200;
+  color: #00ff00;
+  border-bottom: 2px solid #00ff00;
+}
+
+#workspaces button.urgent {
+  background-color: #000000;
+  color: #ff0000;
+  border-bottom: 2px solid #ff0000;
+}
+
+#workspaces button:hover {
+  background-color: #001100;
+  color: #00ff00;
+}
+
+/* Right-side status modules */
+#mode,
+#idle_inhibitor,
+#pulseaudio,
+#network,
+#cpu,
+#memory,
+#temperature,
+#clock,
+#tray,
+#custom-power {
+  padding: 0 10px;
+  background-color: #000000;
+  color: #00ff00;
+  border-left: 1px solid #003300;
+}
+
+/* Module Alerts & Highlights */
+#temperature.critical {
+  color: #ff0000;
+}
+
+#pulseaudio.muted {
+  color: #005500;
+}
+
+#mode {
+  background-color: #003300;
+  color: #00ff00;
+}
+
+#custom-power {
+  color: #00ff00;
+  font-weight: bold;
+}
+
+#custom-power:hover {
+  background-color: #ff0000;
+  color: #000000;
+}
