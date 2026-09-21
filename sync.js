@@ -1,62 +1,27 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
-/**
- * sync.js — two-way sync of config files between this dotfiles repo and $HOME.
- *
- * Usage:
- *   node sync.js                      push: repo -> $HOME (default)
- *   node sync.js --pull               pull: $HOME -> repo (e.g. after tweaking
- *                                     configs in place, before committing)
- *   node sync.js -n, --dry-run        show what would change, write nothing
- *   node sync.js -v, --verbose        also list files that are already in sync
- *   node sync.js --link               symlink files into $HOME instead of copying
- *   node sync.js --exclude PATH       skip a mapped repo path (repeatable)
- *   node sync.js --add-new [PATH...]  (pull only) import new files found in
- *                                     $HOME. Without PATH, only stray files
- *                                     inside dirs the repo already knows are
- *                                     imported. With PATH (repo-relative,
- *                                     repeatable), everything new under that
- *                                     path is imported, e.g.
- *                                       node sync.js --pull --add-new .config/fuzzel
- *
- * Behaviour:
- *   - Files are only created/updated, never deleted. Stale files on the
- *     destination side are reported, not removed.
- *   - .tmux.conf is kept as a symlink pointing at the repo copy.
- *   - The top-level alacritty/, i3/ and picom/ dirs are legacy copies with
- *     no counterpart in $HOME, so they are intentionally not mapped.
- */
+// Two-way sync of config files between this dotfiles repo and $HOME.
+// Usage: node sync.js [--pull] [-n] [-v] [--link] [--exclude PATH]
+//                  [--add-new PATH...]
 
-const fs = require('fs');
-const fsp = require('fs/promises');
-const path = require('path');
-const os = require('os');
-const crypto = require('crypto');
+const fs = require("fs");
+const fsp = require("fs/promises");
+const path = require("path");
+const os = require("os");
+const crypto = require("crypto");
 
-// ---------------------------------------------------------------------------
-// Sync rules
-//   repo: path relative to the repo root
-//   home: path relative to $HOME
-//   type: 'copy' -> regular file, copied in both directions
-//         'link' -> symlink in $HOME pointing at the repo file (push only;
-//                   pull reads through the link)
-//   exclude: repo-relative paths under this rule to skip
-// ---------------------------------------------------------------------------
+// repo/home paths are relative; type: copy | link; exclude: repo-relative
 const RULES = [
-  { repo: '.config',              home: '.config',    type: 'copy',
-    exclude: ['.config/.tmux.conf'] },
-  { repo: '.config/.tmux.conf',   home: '.tmux.conf', type: 'link' },
-  { repo: '.zshrc',               home: '.zshrc',     type: 'copy' },
-  { repo: '.oh-my-zsh',           home: '.oh-my-zsh', type: 'copy' },
+  { repo: ".config", home: ".config", type: "copy", exclude: [".config/.tmux.conf"] },
+  { repo: ".config/.tmux.conf", home: ".tmux.conf", type: "link" },
+  { repo: ".zshrc", home: ".zshrc", type: "copy" },
+  { repo: ".oh-my-zsh", home: ".oh-my-zsh", type: "copy" },
 ];
 
-const SKIP_DIRS = new Set(['.git', 'node_modules', '.cache', '.Trash']);
-const SKIP_FILES = new Set(['.DS_Store']);
+const SKIP_DIRS = new Set([".git", "node_modules", ".cache", ".Trash"]);
+const SKIP_FILES = new Set([".DS_Store"]);
 
-// ---------------------------------------------------------------------------
-// CLI
-// ---------------------------------------------------------------------------
 const HELP = `usage: node sync.js [options]
 
 Options:
@@ -64,12 +29,9 @@ Options:
   -n, --dry-run       show what would change, write nothing
   -v, --verbose       also list files that are already in sync
   --link              symlink files into $HOME instead of copying
-  --exclude PATH      skip a mapped repo path, e.g. --exclude .oh-my-zsh
-                      (repeatable)
-  --add-new [PATH..]  (pull only) import new files found in $HOME.
-                      Without PATH only stray files inside repo-known dirs
-                      are imported; with PATH everything new under it is
-                      imported (repeatable)
+  --exclude PATH      skip a mapped repo path (repeatable)
+  --add-new [PATH..]  (pull only) import new files found in $HOME;
+                      without PATH only stray files in repo-known dirs
   -h, --help          show this help
 `;
 
@@ -85,19 +47,19 @@ function parseArgs(argv) {
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--pull') opts.pull = true;
-    else if (a === '-n' || a === '--dry-run') opts.dryRun = true;
-    else if (a === '-v' || a === '--verbose') opts.verbose = true;
-    else if (a === '--link') opts.link = true;
-    else if (a === '--add-new') {
+    if (a === "--pull") opts.pull = true;
+    else if (a === "-n" || a === "--dry-run") opts.dryRun = true;
+    else if (a === "-v" || a === "--verbose") opts.verbose = true;
+    else if (a === "--link") opts.link = true;
+    else if (a === "--add-new") {
       opts.addNew = true;
-      while (argv[i + 1] && !argv[i + 1].startsWith('-')) {
+      while (argv[i + 1] && !argv[i + 1].startsWith("-")) {
         opts.addNewPaths.push(argv[++i]);
       }
-    } else if (a === '--exclude') {
-      if (!argv[i + 1]) fail('--exclude needs a value');
+    } else if (a === "--exclude") {
+      if (!argv[i + 1]) fail("--exclude needs a value");
       opts.excludes.push(argv[++i]);
-    } else if (a === '-h' || a === '--help') {
+    } else if (a === "-h" || a === "--help") {
       console.log(HELP);
       process.exit(0);
     } else {
@@ -105,7 +67,7 @@ function parseArgs(argv) {
     }
   }
   if (opts.addNew && !opts.pull) {
-    console.warn('warn: --add-new has no effect without --pull');
+    console.warn("warn: --add-new has no effect without --pull");
   }
   return opts;
 }
@@ -115,9 +77,6 @@ function fail(msg) {
   process.exit(1);
 }
 
-// ---------------------------------------------------------------------------
-// Filesystem helpers
-// ---------------------------------------------------------------------------
 async function walk(dir, skipDirs = SKIP_DIRS, skipFiles = SKIP_FILES) {
   const out = [];
   const stack = [dir];
@@ -144,33 +103,31 @@ async function walk(dir, skipDirs = SKIP_DIRS, skipFiles = SKIP_FILES) {
 
 async function sha256(p) {
   const data = await fsp.readFile(p);
-  return crypto.createHash('sha256').update(data).digest('hex');
+  return crypto.createHash("sha256").update(data).digest("hex");
 }
 
-// Compare two files by content. Returns 'same' | 'update' | 'new'.
-// 'new' means the source exists but the destination does not.
+// same | update | new (dest missing)
 async function copyStatus(src, dest) {
   try {
     const [sh, dh] = await Promise.all([sha256(src), sha256(dest)]);
-    return sh === dh ? 'same' : 'update';
+    return sh === dh ? "same" : "update";
   } catch (e) {
-    if (e.code === 'ENOENT') return 'new';
+    if (e.code === "ENOENT") return "new";
     throw e;
   }
 }
 
-// Status of a symlink that should point dest -> target.
-// Returns 'same' | 'replace' | 'missing'.
+// same | replace | missing, for symlink dest -> target
 async function linkStatus(dest, target) {
   try {
     const st = await fsp.lstat(dest);
     if (st.isSymbolicLink()) {
       const cur = await fsp.readlink(dest);
-      if (path.resolve(path.dirname(dest), cur) === target) return 'same';
+      if (path.resolve(path.dirname(dest), cur) === target) return "same";
     }
-    return 'replace';
+    return "replace";
   } catch (e) {
-    if (e.code === 'ENOENT') return 'missing';
+    if (e.code === "ENOENT") return "missing";
     throw e;
   }
 }
@@ -184,9 +141,6 @@ async function exists(p) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Plan
-// ---------------------------------------------------------------------------
 async function buildEntries(repoRoot, home, rules) {
   const entries = [];
   for (const rule of rules) {
@@ -202,9 +156,12 @@ async function buildEntries(repoRoot, home, rules) {
     if (st.isDirectory()) {
       for (const f of await walk(srcBase)) {
         const repoRel = path.relative(repoRoot, f);
-        if ((rule.exclude || []).some(
-          (ex) => repoRel === ex || repoRel.startsWith(ex + path.sep),
-        )) continue;
+        if (
+          (rule.exclude || []).some(
+            (ex) => repoRel === ex || repoRel.startsWith(ex + path.sep),
+          )
+        )
+          continue;
         const rel = path.relative(srcBase, f);
         entries.push({
           repoRel,
@@ -227,10 +184,8 @@ async function buildEntries(repoRoot, home, rules) {
   return entries.sort((a, b) => a.dest.localeCompare(b.dest));
 }
 
-// Find files/dirs in $HOME under the mapped roots that the repo doesn't have.
-// Doesn't dump noise: unknown top-level entries are reported as whole items,
-// and files are diffed only inside dirs that exist on both sides.
-// Returns [{ homeAbs, repoAbs, repoRel, topLevel, dir }]
+// $HOME items the repo lacks; unknown top-level entries reported whole,
+// files diffed only inside dirs that exist on both sides
 async function discoverNewInHome(repoRoot, home, rules) {
   const out = [];
   for (const rule of rules) {
@@ -242,15 +197,16 @@ async function discoverNewInHome(repoRoot, home, rules) {
     } catch {
       continue;
     }
-    if (!hst.isDirectory()) continue; // file rules are covered by entries
+    if (!hst.isDirectory()) continue;
     try {
       rst = await fsp.stat(repoBase);
     } catch {
       rst = null;
     }
-    const repoKids = rst && rst.isDirectory()
-      ? new Set(await fsp.readdir(repoBase))
-      : new Set();
+    const repoKids =
+      rst && rst.isDirectory()
+        ? new Set(await fsp.readdir(repoBase))
+        : new Set();
     const homeKids = await fsp.readdir(homeBase).catch(() => []);
     for (const k of homeKids) {
       if (SKIP_DIRS.has(k) || SKIP_FILES.has(k)) continue;
@@ -280,9 +236,7 @@ async function discoverNewInHome(repoRoot, home, rules) {
       }
       if (rstK && hstK.isDirectory() && rstK.isDirectory()) {
         const hf = await walk(hk);
-        const rf = new Set(
-          (await walk(rk)).map((f) => path.relative(rk, f)),
-        );
+        const rf = new Set((await walk(rk)).map((f) => path.relative(rk, f)));
         for (const f of hf) {
           const rel = path.relative(hk, f);
           if (!rf.has(rel)) {
@@ -301,36 +255,38 @@ async function discoverNewInHome(repoRoot, home, rules) {
   return out;
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const repoRoot = path.dirname(fs.realpathSync(__filename));
   const home = os.homedir();
-  const dir = opts.pull ? ' <- ' : ' -> ';
+  const dir = opts.pull ? " <- " : " -> ";
   const label = opts.pull
     ? `${home}${dir}${repoRoot}`
     : `${repoRoot}${dir}${home}`;
 
   const rules = RULES.filter(
-    (r) => !opts.excludes.some(
-      (e) => r.repo === e || r.repo.startsWith(e + path.sep),
-    ),
+    (r) =>
+      !opts.excludes.some(
+        (e) => r.repo === e || r.repo.startsWith(e + path.sep),
+      ),
   );
-  if (rules.length === 0) fail('no sync rules left after --exclude');
+  if (rules.length === 0) fail("no sync rules left after --exclude");
 
   const entries = await buildEntries(repoRoot, home, rules);
   const newInHome = await discoverNewInHome(repoRoot, home, rules);
 
   const counts = {
-    new: 0, update: 0, link: 0, same: 0, notInRepo: 0, missing: 0,
+    new: 0,
+    update: 0,
+    link: 0,
+    same: 0,
+    notInRepo: 0,
+    missing: 0,
   };
-  const plan = []; // { kind: 'copy'|'link', src, dest, target? }
+  const plan = [];
 
-  // --- reconcile known files --------------------------------------------
   for (const e of entries) {
-    const src = opts.pull ? e.dest : e.src;   // pull: home -> repo
+    const src = opts.pull ? e.dest : e.src;
     const dest = opts.pull ? e.src : e.dest;
 
     if (opts.pull) {
@@ -339,7 +295,6 @@ async function main() {
         if (opts.verbose) console.log(`  missing in $HOME  ${e.homeRel}`);
         continue;
       }
-      // If the home side is a symlink to the repo file, it is in sync.
       const st = await fsp.lstat(src);
       if (st.isSymbolicLink()) {
         const cur = await fsp.readlink(src);
@@ -350,58 +305,56 @@ async function main() {
         }
       }
       const s = await copyStatus(src, dest);
-      if (s === 'same') {
+      if (s === "same") {
         counts.same++;
         if (opts.verbose) console.log(`  same              ${e.homeRel}`);
-      } else if (s === 'update') {
+      } else if (s === "update") {
         counts.update++;
-        plan.push({ kind: 'copy', src, dest });
+        plan.push({ kind: "copy", src, dest });
         console.log(`  update            ${e.homeRel}`);
       } else {
-        // 'new': repo doesn't have this file yet (e.g. rule file deleted)
         counts.notInRepo++;
         if (opts.addNew) {
           counts.new++;
-          plan.push({ kind: 'copy', src, dest });
+          plan.push({ kind: "copy", src, dest });
           console.log(`  new (in repo)     ${e.homeRel}`);
         }
       }
     } else {
-      const isLink = e.type === 'link' || opts.link;
+      const isLink = e.type === "link" || opts.link;
       if (isLink) {
         const s = await linkStatus(dest, e.src);
-        if (s === 'same') {
+        if (s === "same") {
           counts.same++;
           if (opts.verbose) console.log(`  linked            ${e.homeRel}`);
         } else {
           counts.link++;
-          plan.push({ kind: 'link', dest, target: e.src });
+          plan.push({ kind: "link", dest, target: e.src });
           console.log(`  link              ${e.homeRel} -> ${e.src}`);
         }
       } else {
         const s = await copyStatus(e.src, dest);
-        if (s === 'same') {
+        if (s === "same") {
           counts.same++;
           if (opts.verbose) console.log(`  same              ${e.homeRel}`);
-        } else if (s === 'update') {
+        } else if (s === "update") {
           counts.update++;
-          plan.push({ kind: 'copy', src: e.src, dest });
+          plan.push({ kind: "copy", src: e.src, dest });
           console.log(`  update            ${e.homeRel}`);
         } else {
           counts.new++;
-          plan.push({ kind: 'copy', src: e.src, dest });
+          plan.push({ kind: "copy", src: e.src, dest });
           console.log(`  new               ${e.homeRel}`);
         }
       }
     }
   }
 
-  // --- handle $HOME items the repo doesn't know about ---------------------
   for (const it of newInHome) {
     let importIt = false;
     if (opts.pull && opts.addNew) {
       if (opts.addNewPaths.length === 0) {
-        importIt = !it.topLevel; // bare flag: only stray files in known dirs
+        importIt = !it.topLevel;
       } else {
         importIt = opts.addNewPaths.some(
           (p) => it.repoRel === p || it.repoRel.startsWith(p + path.sep),
@@ -421,13 +374,13 @@ async function main() {
       for (const f of files) {
         const dest = path.join(repoRoot, f.repoRel);
         counts.new++;
-        plan.push({ kind: 'copy', src: f.src, dest });
+        plan.push({ kind: "copy", src: f.src, dest });
         console.log(`  new (in repo)     ${f.repoRel}`);
       }
     } else {
       counts.notInRepo++;
       if (opts.verbose) {
-        console.log(`  not in repo       ${it.repoRel}${it.dir ? '/' : ''}`);
+        console.log(`  not in repo       ${it.repoRel}${it.dir ? "/" : ""}`);
       }
     }
   }
@@ -435,7 +388,7 @@ async function main() {
   if (counts.notInRepo) {
     console.log(
       `  (${counts.notInRepo} items in $HOME are not in the repo — ` +
-      `use --pull --add-new <path> to import)`,
+        `use --pull --add-new <path> to import)`,
     );
   }
   if (opts.pull && counts.missing) {
@@ -444,14 +397,15 @@ async function main() {
     );
   }
 
-  // --- execute -------------------------------------------------------------
   if (opts.dryRun) {
-    console.log(`\n[dry-run] ${label} — ${plan.length} change(s) would be made`);
+    console.log(
+      `\n[dry-run] ${label} — ${plan.length} change(s) would be made`,
+    );
     return;
   }
   for (const a of plan) {
     try {
-      if (a.kind === 'link') {
+      if (a.kind === "link") {
         await fsp.rm(a.dest, { recursive: true, force: true });
         await fsp.mkdir(path.dirname(a.dest), { recursive: true });
         await fsp.symlink(a.target, a.dest);
@@ -468,9 +422,9 @@ async function main() {
 
   console.log(
     `\n${label}\n` +
-    `  new: ${counts.new}  updated: ${counts.update}  linked: ${counts.link}  ` +
-    `unchanged: ${counts.same}  not in repo: ${counts.notInRepo}  ` +
-    `missing in $HOME: ${counts.missing}`,
+      `  new: ${counts.new}  updated: ${counts.update}  linked: ${counts.link}  ` +
+      `unchanged: ${counts.same}  not in repo: ${counts.notInRepo}  ` +
+      `missing in $HOME: ${counts.missing}`,
   );
 }
 
