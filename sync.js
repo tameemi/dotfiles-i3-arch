@@ -3,7 +3,7 @@
 
 // Two-way sync of config files between this dotfiles repo and $HOME.
 // Usage: node sync.js [--pull] [-n] [-v] [--link] [--exclude PATH]
-//                  [--add-new PATH...]
+//[--add-new PATH...]
 
 const fs = require("fs");
 const fsp = require("fs/promises");
@@ -13,7 +13,12 @@ const crypto = require("crypto");
 
 // repo/home paths are relative; type: copy | link; exclude: repo-relative
 const RULES = [
-  { repo: ".config", home: ".config", type: "copy", exclude: [".config/.tmux.conf"] },
+  {
+    repo: ".config",
+    home: ".config",
+    type: "copy",
+    exclude: [".config/.tmux.conf"],
+  },
   { repo: ".config/.tmux.conf", home: ".tmux.conf", type: "link" },
   { repo: ".zshrc", home: ".zshrc", type: "copy" },
   { repo: ".oh-my-zsh", home: ".oh-my-zsh", type: "copy" },
@@ -184,7 +189,7 @@ async function buildEntries(repoRoot, home, rules) {
   return entries.sort((a, b) => a.dest.localeCompare(b.dest));
 }
 
-// $HOME items the repo lacks; unknown top-level entries reported whole,
+// $HOME items the repo lacks
 // files diffed only inside dirs that exist on both sides
 async function discoverNewInHome(repoRoot, home, rules) {
   const out = [];
