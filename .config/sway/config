@@ -3,10 +3,16 @@
 
 set $mod Mod4
 
+# Environment & Portal Sync (Fixes startup race conditions)
+exec systemctl --user import-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK
+exec dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK
+
 # Font for window titles and bar
 font pango:monospace 12
 
-# Samsung C49RG9x 5120x1440 120Hz Output Config
+# Output Configuration
+# Uses wildcard '*' so rules apply even if display port identifier delays initialization
+output * mode 5120x1440@119.970Hz position 0,0 scale 1 adaptive_sync on
 
 # Autostart desktop applications via XDG
 exec dex --autostart --environment sway
@@ -29,8 +35,7 @@ bindsym $mod+Return exec alacritty
 # Kill focused window
 bindsym $mod+Shift+q kill
 
-# Application Launcher (Replaced dmenu with rofi-wayland)
-# bindsym $mod+d exec rofi -show drun
+# Application Launcher
 bindsym $mod+d exec fuzzel
 
 # Navigation (Vim-style & Arrow Keys)
@@ -135,31 +140,16 @@ mode "resize" {
 bindsym $mod+r mode "resize"
 
 # Status Bar
-# bar {
-#         status_command i3status
-# }
-# bar {
-#         swaybar_command waybar
-# }
 exec_always killall waybar; waybar > /dev/null 2>&1 &
 
-# CUSTOM STUFF BELOW
-
-# Removes window title bars / borders
-#default_border pixel 0
-#default_floating_border pixel 0
-
-## WALLPAPER (Replaced feh with swaybg)
+# Wallpaper
 exec_always swaybg -i /home/tameem/Pictures/witcher.jpg -m fill
 
-## Faster key repeating (Handled natively by Sway)
+# Key repeat rate
 input * {
     repeat_delay 200
     repeat_rate 30
 }
-
-## Windows Compositor
-# Removed picom: Sway handles compositing natively out of the box with zero tearing.
 
 # Suspend
 bindsym $mod+Shift+period exec systemctl suspend
@@ -167,43 +157,33 @@ bindsym $mod+Shift+period exec systemctl suspend
 # Audio GUI Control
 bindsym $mod+Shift+a exec pavucontrol
 
-# SCREENSHOTS (Replaced maim/xclip with grim/slurp/wl-copy)
-
+# SCREENSHOTS
 # F10: Select area -> Copy directly to clipboard
 bindsym F10 exec grim -g "$(slurp)" - | wl-copy
 
 # Shift+F10: Select area -> Save directly to ~/screenshots
 bindsym Shift+F10 exec grim -g "$(slurp)" "$HOME/screenshots/shot_$(date +%s).png"
 
-
-
-
-# Ensure default windows open tiled
+# Window tiling rules
 for_window [app_id=".*"] floating disable
 for_window [class=".*"] floating disable
 
 exec_always autotiling
 
+# WebRTC Desktop Sharing Portal
+exec /usr/lib/xdg-desktop-portal-wlr
 
-output DP-4 mode 5120x1440@119.970Hz position 0,0 scale 1 adaptive_sync on
-
-# needed for webrtc apps to share windows or whole monitor
-exec /usr/lib/xdg-desktop-portal-wlr &
-
-
-# Lock screen after 5 minutes, turn off screen after 10 minutes
+# Idle and Screen Lock
 exec swayidle -w \
     timeout 300 'swaylock -c 000000' \
     timeout 600 'swaymsg "output * power off"' \
     resume 'swaymsg "output * power on"' \
     before-sleep 'swaylock -c 000000'
 
-
-# Enable XWayland primary selection support
+# Clipboard daemon
 exec_always wl-paste --type text --watch clipman store --no-persist
 
-
-# Minimal window borders
+# Window borders & Gaps
 default_border pixel 1
 default_floating_border pixel 1
 gaps inner 4
@@ -211,6 +191,20 @@ gaps outer 0
 
 # Colors:                border   bg       text     indicator child_border
 client.focused           #00ff00  #000000  #00ff00  #00ff00   #00ff00
-client.focused_inactive  #003300  #000000  #007700  #003300   #003300
+client.focused_inactive #003300  #000000  #007700  #003300   #003300
 client.unfocused         #002200  #000000  #005500  #002200   #002200
 client.urgent            #ff0000  #000000  #ffffff  #ff0000   #ff0000
+
+# Start GNOME Keyring Daemon (Removed unsupported --no-startup-id flag)
+exec /usr/bin/gnome-keyring-daemon --start --components=secrets,ssh
+
+
+
+# Set cursor theme to Adwaita and size to 48 (or 32, 64)
+seat seat0 xcursor_theme Adwaita 32
+
+# Update environment variables for applications launched by Sway
+exec_always {
+    gsettings set org.gnome.desktop.interface cursor-theme 'Adwaita'
+    gsettings set org.gnome.desktop.interface cursor-size 32
+}

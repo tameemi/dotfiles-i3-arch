@@ -6,14 +6,20 @@ program = "/usr/bin/zsh"
 # args = ["-l", "-c"]
 
 [env]
-TERM = "xterm-256color"
+TERM = "alacritty"
+WAYLAND_DISPLAY = "wayland-1"
 
 [window]
-decorations = "Full"
-dynamic_padding = false
+decorations = "None"
+dynamic_padding = true
 title = ""
-opacity = 0.9
+opacity = 0.97
 option_as_alt = "Both"
+
+
+[window.padding]
+y = 0
+x = 0
 
 
 [font]
@@ -53,17 +59,28 @@ style = "Regular"
 #
 # Instructions
 # https://github.com/alacritty/alacritty/blob/master/extra/man/alacritty.5.scd
+#
+
+
+[cursor]
+style = {shape = "block", blinking = "Always"}
+
+
+
 
 [colors.primary]
-
-# background = "#000000"
-foreground = "#f8f8f2"
-bright_foreground = "#ffffff"
+background = "#0d1110"
+foreground = "#c0dacb"
+bright_foreground = "#33ff77"
 
 [colors.cursor]
 
-text = "#282a36"
-cursor = "#f8f8f2"
+# text = "#282a36"
+# cursor = "#f8f8f2"
+# text = "#0d1110"
+# cursor = "#33ff77"
+text = "#000000"
+cursor = "#00ff00"
 
 [colors.vi_mode_cursor]
 
@@ -85,6 +102,8 @@ blue = "#bd93f9"
 magenta = "#ff79c6"
 cyan = "#8be9fd"
 white = "#f8f8f2"
+
+
 
 [colors.bright]
 
@@ -127,3 +146,57 @@ live_config_reload = true
 working_directory = "/home/tameem/"
 
 [terminal]
+
+# ==========================================
+# Dark Emerald & Green Accent CRT Theme
+# ==========================================
+
+# [colors.primary]
+# background = "#0d1110"
+# foreground = "#c0dacb"
+# bright_foreground = "#33ff77"
+#
+# [colors.cursor]
+# text = "#0d1110"
+# cursor = "#33ff77"
+#
+# [colors.vi_mode_cursor]
+# text = "#0d1110"
+# cursor = "#33ff77"
+#
+# [colors.selection]
+# text = "#0d1110"
+# background = "#2a5a3f"
+#
+# # Standard ANSI Palette (Balanced for readable CLI tools)
+# [colors.normal]
+# black   = "#18201d"
+# red     = "#e05555"
+# green   = "#33cc66"
+# yellow  = "#d4aa55"
+# blue    = "#4a8a96"
+# magenta = "#a668a6"
+# cyan    = "#50a080"
+# white   = "#a2b5a9"
+#
+# # Bright ANSI Palette (High contrast highlights)
+# [colors.bright]
+# black   = "#32423c"
+# red     = "#ff6666"
+# green   = "#33ff77"
+# yellow  = "#f0cc77"
+# blue    = "#66b3c2"
+# magenta = "#c884c8"
+# cyan    = "#70cfa8"
+# white   = "#e0f0e8"
+#
+# [colors.search.matches]
+# foreground = "#0d1110"
+# background = "#33cc66"
+#
+# [colors.search.focused_match]
+# foreground = "#0d1110"
+# background = "#33ff77"
+#
+#
+

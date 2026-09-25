@@ -1,6 +1,16 @@
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
+# Force Wayland backends
+export XDG_CURRENT_DESKTOP=sway
+export XDG_SESSION_DESKTOP=sway
+export XDG_SESSION_TYPE=wayland
+export MOZ_ENABLE_WAYLAND=1
+export GDK_BACKEND=wayland,x11
+export QT_QPA_PLATFORM="wayland;xcb"
+
+
+
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 
@@ -90,6 +100,7 @@ export FZF_ALT_C_COMMAND="ls -d ~/dev/*"
 plugins=(
     git
     zsh-autosuggestions
+    jq
     fzf
 )
 
@@ -135,3 +146,18 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
+
+
+# Auto-format JSON for any command if valid JSON is detected
+auto_jq() {
+    local output
+    output=$(cat)
+    if echo "$output" | jq empty >/dev/null 2>&1; then
+        echo "$output" | jq
+    else
+        echo "$output"
+    fi
+}
+
+# Alias common commands, or use a helper wrapper
+alias j='| auto_jq'
